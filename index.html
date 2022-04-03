@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>My Photo Gallery</title>
+    <style type="text/css">
+
+		img {
+			width: 100%;
+		}
+
+        .pig-wrapper {
+            position: relative;
+        }
+    </style>
+
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <script type="text/javascript" src="static/jquery.min.js"></script>
+    <link rel="stylesheet" href="static/bootstrap.min.css">
+    <script src="static/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://openlayers.org/en/v4.6.5/css/ol.css" type="text/css">
+    <script src="https://openlayers.org/en/v4.6.5/build/ol.js"></script>
+    <style>
+      #map {
+        position: relative;
+      }
+    </style>
+
+    <script type="text/javascript" src="static/pig.js/src/pig.js"></script>
+    <script type="text/javascript" src="static/timeline.js"></script>
+</head>
+
+<body>
+	<div class="container">
+
+    <div class="page-header">
+		<h1>My Photo Gallery</h1>
+   </div>
+
+
+    <div class="row">
+        <div id="filter">
+            <form id="search_photos" class="form-inline">
+                <div class="form-group">
+                    <label for="query_year">Year</label>
+                    <select name="query_year" id="query_year" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                    <label for="query_city">City</label>
+                    <select name="query_city" id="query_city" class="form-control"></select>
+                </div>
+                <input name="Submit"  type="submit" class="btn btn-default" value="Filter" />
+            </form>
+        </div>
+    </div>
+
+    <hr />
+
+    <div id="indices">
+    </div>
+
+    <hr />
+
+	<div id="full_photo">
+        <div class="row">
+            <div class="col-sm-3"><h1><a id="full_photo_back">🔙</a></h1></div>
+            <div class="col-sm-3"><h1><a id="full_photo_prev">Previous ⬅️</a></h1></div>
+            <div class="col-sm-3"><h1><a id="full_photo_next">➡️ Next</a></h1></div>
+        </div>
+        <div class="row">
+            <div class="col-sm-9">
+                <img id="photo" src = "" class = "img-rounded">
+            </div>
+
+            <div class="col-sm-3">
+                <div id="map" class="map"></div>
+                <h2>People</h2>
+                <div id="people"></div>
+                <h2>Metadata</h2>
+                <div>Date:<span id="metadata_date"></span></div>
+            </div>
+        </div>
+	</div>
+
+	<div id="timeline" class="pig-wrapper">
+		<div id="pig"></div>
+	</div>
+
+    <script>
+
+    $(document).ready(function() {
+        $('#full_photo').css('display', 'none');
+
+        $('#full_photo_back').click(function() {
+            back_full_photo();
+        });
+
+        // TODO: start lazy loading prev and next
+        $('#full_photo_prev').click(function() {
+            var h_prev = timeline_get_prev();
+            if (h_prev) set_full_photo(h_prev);
+        });
+
+        $('#full_photo_next').click(function() {
+            var h_next = timeline_get_next();
+            if (h_next) set_full_photo(h_next);
+        });
+
+        $.get("cgi/query_data", function (data) {
+            console.log(data);
+
+            // TODO: better support for images without GPS
+
+	        $('#query_year').empty();
+	        $('#query_city').empty();
+
+            Object.keys(data).sort().forEach(function(year) {
+                var option = document.createElement('option');
+                option.value = (year == 1969)? 0           : year;
+                option.text  = (year == 1969)? "(No date)" : year;
+                $('#query_year').append(option);
+            });
+
+            $('#query_year').change(function() {
+                $('#query_city').empty();
+
+                var year = Number( $( "#query_year option:selected" ).val() );
+
+                var option = document.createElement('option');
+                option.value = "";
+                option.text = "(No city)";
+                $('#query_city').append(option);
+
+                var cities = data[year];
+                for (var k in cities) {
+                    var option = document.createElement('option');
+                    option.value = option.text = cities[k];
+                    $('#query_city').append(option);
+                }
+            });
+        });
+
+        $.get("cgi/", timeline_gen);
+
+        $('#search_photos').on('submit',function (e) {
+              $.ajax({
+                type: 'post',
+                url: 'cgi/',
+                data: $('#search_photos').serialize(),
+                success: function (data) {
+                    timeline_gen(data);
+                }
+              });
+          e.preventDefault();
+        });
+    });
+    </script>
+
+</body>
+</html>
